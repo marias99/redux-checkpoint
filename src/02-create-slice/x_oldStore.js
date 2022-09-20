@@ -8,8 +8,8 @@ const stateSlice = createSlice({
   name: 'state',
   initialState: {
     age: 0,
-    possessions: [],
     cash: 0,
+    possessions: [],
   },
   reducers: {
     hadBirthday(state) {
@@ -17,6 +17,9 @@ const stateSlice = createSlice({
     },
     receivedPaycheck(state, action) {
       state.cash = state.cash + action.payload;
+    },
+    paidBill(state, action) {
+      state.cash = state.cash - action.payload;
     },
     recievedGift(state, action) {
       state.possessions.push(action.payload);
