@@ -1,88 +1,113 @@
 /*
- * READ THIS FIRST
- *
- * The default initial state of the store is the following:
- *
- * {
- *   balloons: [],
- *   balloonsError: null
- * }
- *
- * Look at the files in `src/03-thunks/`
- *
- * Included in `src/03-thunks/action-creators.js`
- *   is a function named: `createGetBalloonsThunk`.
- *
- * This is for you to implement as a thunk creator.
- *
- * The object of this thunk is to issue a GET request to `/balloons` with the
- * axios library.
- *
- * There are two specs, one simulates a successful response that responds with
- * an array of balloons: `["red baloon", "yellow balloon", "green ballooon"]`
- *
- * The other spec simulates a failed response with a status code `400`.
- *
- * Write this thunk creator in a way that, upon success the list of balloons
- * is placed on state at the `balloons` key. And upon failure, places the error
- * object on state at the `balloonsError` key.
- *
- */
-import MockAxiosAdapter from "axios-mock-adapter";
-import { expect } from "chai";
-import axios from "axios";
-import { createStore, applyMiddleware } from "redux";
-import thunkMiddleware from "redux-thunk";
-import enforceImmutableState from 'redux-immutable-state-invariant';
+  READ THIS FIRST 
+  
+  Review the file `src/03-thunks/store.js`
+  
+  Included are two functions you will need to create as async thunks:
+  
+  1. fetchBalloonsAsync: issue a GET request to `/balloons` with the axios library.
 
-import combinedReducers from "../src/03-thunks/reducer";
-import { createGetBalloonsThunk } from "../src/03-thunks/action-creators";
+  2. addBalloonAsync: issue a POST request to `/balloons`, passing in a color string with the axios library.
+  
+  You will also need to create the appropriate reducers to go along with these thunks.
+ */
+
+import MockAxiosAdapter from 'axios-mock-adapter';
+import { expect } from 'chai';
+import axios from 'axios';
+import { configureStore } from '@reduxjs/toolkit';
+
+import {
+  balloonsSlice,
+  fetchBalloonsAsync,
+  addBalloonAsync,
+} from '../src/03-thunks/store';
 
 let store;
 let mockAxios;
 
-describe("Thunks", () => {
+describe('Thunks', () => {
   beforeEach(() => {
     mockAxios = new MockAxiosAdapter(axios);
-    store = createStore(
-      combinedReducers,
-      applyMiddleware(thunkMiddleware, enforceImmutableState())
-    );
+    store = configureStore({
+      reducer: {
+        balloons: balloonsSlice.reducer,
+      },
+    });
   });
 
   afterEach(() => {
     mockAxios.restore();
   });
 
-  describe("GET /balloons succeeds", () => {
+  describe('GET /balloons succeeds', () => {
     beforeEach(() => {
+      // simulate a successful GET request to '/balloons'
+      // that responds with a 200 status and an array
       mockAxios
-        .onGet("/balloons")
-        .reply(200, ["red balloon", "yellow balloon", "green balloon"]);
+        .onGet('/balloons')
+        .reply(200, ['red balloon', 'yellow balloon', 'green balloon']);
     });
 
-    xit("sets the received balloons on state", async () => {
-      await store.dispatch(createGetBalloonsThunk());
+    xit('sets the received balloons on state', async () => {
+      await store.dispatch(fetchBalloonsAsync());
       const state = store.getState();
-      expect(state.balloons).to.deep.equal([
-        "red balloon",
-        "yellow balloon",
-        "green balloon"
+      expect(state.balloons.balloons).to.deep.equal([
+        'red balloon',
+        'yellow balloon',
+        'green balloon',
       ]);
     });
   });
 
-  describe("GET /balloons fails", () => {
+  describe('POST /balloons succeeds', () => {
     beforeEach(() => {
-      mockAxios.onGet("/balloons").reply(404, "No balloons today!");
+      // simulate a successful POST request to '/balloons' with the req.body { color: 'blue' }
+      // that responds with a 200 status and the string 'blue balloon'
+      mockAxios
+        .onPost('/balloons', { color: 'blue' })
+        .reply(200, 'blue balloon');
+
+      // simulate a successful POST request to '/balloons' with the req.body { color: 'purple' }
+      // that responds with a 200 status and the string 'purple balloon'
+      mockAxios
+        .onPost('/balloons', { color: 'purple' })
+        .reply(200, 'purple balloon');
     });
 
-    xit("sets the thrown error on state", async () => {
-      await store.dispatch(createGetBalloonsThunk());
+    xit('adds the received new balloon on to the balloons state', async () => {
+      await store.dispatch(addBalloonAsync('blue'));
+      await store.dispatch(addBalloonAsync('purple'));
       const state = store.getState();
-      expect(state.balloonsError.response.data).to.deep.equal(
-        "No balloons today!"
+      expect(state.balloons.balloons).to.deep.equal([
+        'blue balloon',
+        'purple balloon',
+      ]);
+    });
+  });
+
+  describe('**Extra Credit** GET /balloons fails', () => {
+    /*  
+      So far, you've created reducers to handle async thunks when they are "fulfilled".
+      How can you handle async thunks when they are "rejected"?
+      Check out this Redux documention for createAsyncThunk for guidance:
+      https://redux.js.org/tutorials/fundamentals/part-8-modern-redux#using-createasyncthunk   
+    */
+    beforeEach(() => {
+      // simulate a failed GET request to '/balloons'
+      // that responds with a 404 error status
+      mockAxios.onGet('/balloons').reply(404);
+    });
+
+    xit('sets the thrown error on state', async () => {
+      await store.dispatch(fetchBalloonsAsync());
+      const state = store.getState();
+
+      expect(state.balloons.error.name).to.deep.equal('Error');
+      expect(state.balloons.error.message).to.deep.equal(
+        'Request failed with status code 404'
       );
+      expect(state.balloons.error.stack).to.be.a('string');
     });
   });
 });

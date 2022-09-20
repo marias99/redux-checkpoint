@@ -4,6 +4,6 @@
 
 `npm install`
 
-### Running the test
+### Running the tests
 
 `npm test`
