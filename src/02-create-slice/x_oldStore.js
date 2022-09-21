@@ -21,7 +21,7 @@ const stateSlice = createSlice({
     paidBill(state, action) {
       state.cash = state.cash - action.payload;
     },
-    recievedGift(state, action) {
+    receivedGift(state, action) {
       state.possessions.push(action.payload);
     },
   },
